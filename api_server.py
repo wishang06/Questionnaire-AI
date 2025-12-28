@@ -20,13 +20,17 @@ applicant_manager = ApplicantManager()
 
 @app.route('/applicant')
 def applicant():
+    return app.send_static_file('applicant.html')
+
+@app.route('/applicant/ai')
+def applicant_ai():
     try:
         applicant_manager.start_conversation(request.remote_addr)
-        return app.send_static_file('applicant.html')
+        return app.send_static_file('applicant_ai.html')
     
     except ValueError as e:
         if applicant_manager.get_applicant_status(request.remote_addr) == 'applying':
-            return app.send_static_file('applicant.html')
+            return app.send_static_file('applicant_ai.html')
         
         return app.send_static_file('applicant_applied.html')
 
@@ -118,10 +122,11 @@ def get_applicants():
         if not os.path.exists(assessments_dir):
             return jsonify({"applicants": []})
         
-        # Get all assessment files (both old job assessments and new dance assessments)
+        # Get all assessment files (both old job assessments, new dance assessments, and quiz results)
         # Use a set to avoid duplicates if a file matches both patterns
         assessment_files = set(glob.glob(os.path.join(assessments_dir, "*_assessment_*.txt")))
         assessment_files.update(glob.glob(os.path.join(assessments_dir, "*_dance_assessment_*.txt")))
+        assessment_files.update(glob.glob(os.path.join(assessments_dir, "*_quiz_*.txt")))
         
         for filepath in sorted(assessment_files):  # Sort for consistent ordering
             candidate_data = parse_assessment_file(filepath)
@@ -138,6 +143,89 @@ def get_applicants():
         
     except Exception as e:
         print(f"Error getting applicants: {str(e)}")
+        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+
+@app.route('/quiz')
+def quiz():
+    return app.send_static_file('quiz.html')
+
+@app.route('/api/quiz/submit', methods=['POST'])
+def submit_quiz():
+    try:
+        data = request.get_json()
+        
+        # Save quiz results to file
+        assessments_dir = "assessments"
+        if not os.path.exists(assessments_dir):
+            os.makedirs(assessments_dir)
+        
+        from datetime import datetime
+        name = data.get('name', 'Anonymous').strip()
+        if name:
+            name_part = "_".join(
+                [
+                    "".join(c for c in part if c.isalnum())
+                    for part in name.split()
+                ]
+            )
+            if not name_part:
+                name_part = "candidate"
+        else:
+            name_part = "candidate"
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{name_part}_quiz_{timestamp}.txt"
+        filepath = os.path.join(assessments_dir, filename)
+        
+        # Format quiz results
+        results_content = f"""DANCE KNOWLEDGE QUIZ RESULTS
+Generated on: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+Candidate Name: {name}
+Score: {data.get('score', 0)}/{data.get('total', 10)} ({data.get('percentage', 0)}%)
+
+=== QUIZ RESULTS ===
+
+Overall Score: {data.get('score', 0)}/{data.get('total', 10)} ({data.get('percentage', 0)}%)
+
+=== CATEGORY BREAKDOWN ===
+"""
+        
+        category_names = {
+            'rhythm': 'Rhythm & Timing',
+            'knowledge': 'History & Origins',
+            'terminology': 'Terminology',
+            'technique': 'Technique',
+            'style_knowledge': 'Style Knowledge',
+            'creativity': 'Creativity'
+        }
+        
+        category_scores = data.get('categoryScores', {})
+        for cat, scores in category_scores.items():
+            if scores.get('total', 0) > 0:
+                percentage = round((scores.get('correct', 0) / scores.get('total', 1)) * 100)
+                results_content += f"{category_names.get(cat, cat)}: {scores.get('correct', 0)}/{scores.get('total', 0)} ({percentage}%)\n"
+        
+        insights = data.get('insights', {})
+        results_content += f"\n=== STRENGTHS ===\n"
+        for strength in insights.get('strengths', []):
+            results_content += f"- {strength}\n"
+        
+        results_content += f"\n=== AREAS FOR IMPROVEMENT ===\n"
+        for weakness in insights.get('weaknesses', []):
+            results_content += f"- {weakness}\n"
+        
+        results_content += f"\n=== RECOMMENDATIONS ===\n"
+        for rec in insights.get('recommendations', []):
+            results_content += f"- {rec}\n"
+        
+        # Write to file
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(results_content)
+        
+        return jsonify({"message": "Quiz results saved successfully", "filepath": filepath})
+        
+    except Exception as e:
+        print(f"Error saving quiz results: {str(e)}")
         return jsonify({"error": f"Internal server error: {str(e)}"}), 500
 
 @app.errorhandler(404)

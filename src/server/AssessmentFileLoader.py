@@ -10,11 +10,19 @@ def parse_assessment_file(filepath):
         
         # Extract basic info from filename and content
         filename = os.path.basename(filepath)
-        name_match = re.search(r'^(.+?)_assessment_', filename)
+        is_quiz = "_quiz_" in filename.lower()
+        
+        if is_quiz:
+            name_match = re.search(r'^(.+?)_quiz_', filename)
+        else:
+            name_match = re.search(r'^(.+?)_(?:assessment|dance_assessment)_', filename)
         candidate_name = name_match.group(1).replace('_', ' ').title() if name_match else "Anonymous"
         
         # Extract interview date from filename
-        date_match = re.search(r'_(\d{8})_\d{6}\.txt$', filename)
+        if is_quiz:
+            date_match = re.search(r'_quiz_(\d{8})_\d{6}\.txt$', filename)
+        else:
+            date_match = re.search(r'_(?:assessment|dance_assessment)_(\d{8})_\d{6}\.txt$', filename)
         if date_match:
             date_str = date_match.group(1)
             interview_date = datetime.strptime(date_str, '%Y%m%d').strftime('%Y-%m-%d')
@@ -39,7 +47,7 @@ def parse_assessment_file(filepath):
         if final_score_match:
             final_score = int(final_score_match.group(1))
         
-        # Check if this is a dance assessment or job assessment
+        # Check if this is a dance assessment, job assessment, or quiz (already set above)
         is_dance_assessment = "dance_assessment" in filename.lower()
         
         # Initialize default scores based on assessment type
@@ -131,6 +139,53 @@ def parse_assessment_file(filepath):
         transcript_start = content.find("Full Interview Transcript:")
         if transcript_start == -1:
             transcript_start = content.find("Full Questionnaire Transcript:")
+        
+        # Handle quiz results (different format)
+        if is_quiz:
+            # Parse quiz results
+            score_match = re.search(r'Score:\s*(\d+)/(\d+)\s*\((\d+)%\)', content)
+            if score_match:
+                candidate_data["quiz_score"] = int(score_match.group(1))
+                candidate_data["quiz_total"] = int(score_match.group(2))
+                candidate_data["quiz_percentage"] = int(score_match.group(3))
+                candidate_data["final_score"] = int(score_match.group(3))
+            
+            # Parse category breakdown
+            category_section = re.search(r'=== CATEGORY BREAKDOWN ===(.*?)(?=== STRENGTHS|$)', content, re.DOTALL)
+            if category_section:
+                category_text = category_section.group(1)
+                for line in category_text.split('\n'):
+                    if ':' in line and '/' in line:
+                        parts = line.split(':')
+                        if len(parts) == 2:
+                            cat_name = parts[0].strip()
+                            score_part = parts[1].strip()
+                            score_match = re.search(r'(\d+)/(\d+)', score_part)
+                            if score_match:
+                                if "category_scores" not in candidate_data:
+                                    candidate_data["category_scores"] = {}
+                                candidate_data["category_scores"][cat_name] = {
+                                    "correct": int(score_match.group(1)),
+                                    "total": int(score_match.group(2))
+                                }
+            
+            # Parse insights
+            strengths_section = re.search(r'=== STRENGTHS ===(.*?)(?=== AREAS|=== RECOMMENDATIONS|$)', content, re.DOTALL)
+            if strengths_section:
+                strengths_text = strengths_section.group(1)
+                candidate_data["insights"]["strengths"] = extract_list_items(strengths_text)
+            
+            weaknesses_section = re.search(r'=== AREAS FOR IMPROVEMENT ===(.*?)(?=== STRENGTHS|=== RECOMMENDATIONS|$)', content, re.DOTALL)
+            if weaknesses_section:
+                weaknesses_text = weaknesses_section.group(1)
+                candidate_data["insights"]["areas_for_improvement"] = extract_list_items(weaknesses_text)
+            
+            recommendations_section = re.search(r'=== RECOMMENDATIONS ===(.*?)$', content, re.DOTALL)
+            if recommendations_section:
+                recommendations_text = recommendations_section.group(1)
+                candidate_data["insights"]["recommendations"] = extract_list_items(recommendations_text)
+            
+            return candidate_data
         
         if assessment_start != -1 and transcript_start != -1:
             ai_assessment = content[assessment_start:transcript_start].strip()

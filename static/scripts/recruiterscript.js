@@ -43,11 +43,16 @@ function displayApplicants(applicants) {
         bubble.className = 'applicant-bubble';
         bubble.onclick = () => showCharacteristics(index);
         
+        const assessmentType = applicant.assessment_type === 'quiz' ? 'Quiz' : 'AI Assessment';
+        const scoreDisplay = applicant.assessment_type === 'quiz' 
+            ? `${applicant.quiz_score || 0}/${applicant.quiz_total || 10} (${applicant.quiz_percentage || 0}%)`
+            : `${applicant.final_score || '0'}/100`;
+        
         bubble.innerHTML = `
             <div class="applicant-name">${applicant.name || 'Anonymous'}</div>
-            <div class="applicant-info">Assessment: ${applicant.interview_date}</div>
-            <div class="applicant-info">Duration: ${applicant.conversation_duration}</div>
-            <div class="applicant-score">Score: ${applicant.final_score || '0'}/100</div>
+            <div class="applicant-info">Type: ${assessmentType}</div>
+            <div class="applicant-info">Date: ${applicant.interview_date}</div>
+            <div class="applicant-score">Score: ${scoreDisplay}</div>
         `;
         
         grid.appendChild(bubble);
@@ -60,6 +65,10 @@ function isDanceAssessment(applicant) {
            applicant.creativity !== undefined || 
            applicant.preferences !== undefined ||
            (applicant.technical_skills && applicant.technical_skills.rhythm !== undefined);
+}
+
+function isQuiz(applicant) {
+    return applicant.assessment_type === 'quiz' || applicant.quiz_score !== undefined;
 }
 
 function showCharacteristics(index) {
@@ -81,7 +90,10 @@ function showCharacteristics(index) {
     // Build characteristics content
     let content = '';
 
-    if (isDanceAssessment(applicant)) {
+    if (isQuiz(applicant)) {
+        // Quiz Results Display
+        content = buildQuizContent(applicant);
+    } else if (isDanceAssessment(applicant)) {
         // Dance Assessment Display
         content = buildDanceAssessmentContent(applicant);
     } else {
@@ -92,8 +104,8 @@ function showCharacteristics(index) {
     contentElement.innerHTML = content;
     modal.style.display = 'flex';
 
-    // Create radar chart for dance assessments
-    if (isDanceAssessment(applicant)) {
+    // Create radar chart for dance assessments (not for quizzes)
+    if (isDanceAssessment(applicant) && !isQuiz(applicant)) {
         // Wait for DOM to be ready and Chart.js to be loaded
         setTimeout(() => {
             if (typeof Chart !== 'undefined') {

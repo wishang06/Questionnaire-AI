@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dance Knowledge Quiz</title>
+    <link rel="shortcut icon" type="image/x-icon" href="image/favicon.ico" />
+    <link rel="stylesheet" href="styles/styles.css" />
+    <link rel="stylesheet" href="styles/quiz.css" />
+  </head>
+  <body>
+    <!-- Logo Section -->
+    <section id="logo-section" class="logo-section">
+      <div class="logo-container">
+        <div class="logo">
+          <div class="logo-icon">
+            <svg viewBox="0 0 100 100" width="120" height="120">
+              <circle cx="50" cy="30" r="12" fill="#333" />
+              <ellipse cx="50" cy="55" rx="15" ry="20" fill="#333" />
+              <path d="M35,75 Q35,85 30,90 L25,90 Q30,85 30,75 Z" fill="#333" />
+              <path d="M65,75 Q65,85 70,90 L75,90 Q70,85 70,75 Z" fill="#333" />
+              <path d="M40,50 Q30,45 25,50 L20,45 Q30,40 40,50 Z" fill="#333" />
+              <path d="M60,50 Q70,45 75,50 L80,45 Q70,40 60,50 Z" fill="#333" />
+            </svg>
+          </div>
+          <h1 class="logo-text">Dance Knowledge Quiz</h1>
+        </div>
+        <p class="scroll-instruction">Test your dance knowledge</p>
+      </div>
+    </section>
+
+    <!-- Quiz Section -->
+    <section id="quiz-section" class="quiz-section job-theme">
+      <div class="quiz-container">
+        <div class="header">
+          <div class="logo-small">Dance Quiz</div>
+          <div class="briefcase-icon">💃</div>
+        </div>
+        
+        <!-- Quiz Form -->
+        <div id="quiz-form" class="quiz-form">
+          <div class="quiz-header">
+            <h2>Dance Knowledge Assessment</h2>
+            <p>Answer 10 questions to test your dance knowledge. Each question has 4 options.</p>
+            <div class="name-input-container">
+              <input type="text" id="quiz-name" placeholder="Enter your name" class="name-input" required />
+            </div>
+          </div>
+          
+          <div id="questions-container" class="questions-container">
+            <!-- Questions will be inserted here by JavaScript -->
+          </div>
+          
+          <div class="quiz-footer">
+            <button id="submit-quiz" class="submit-button">Submit Quiz</button>
+            <div id="quiz-progress" class="quiz-progress">Question 1 of 10</div>
+          </div>
+        </div>
+
+        <!-- Results Display -->
+        <div id="quiz-results" class="quiz-results" style="display: none;">
+          <div class="results-header">
+            <h2>Quiz Results</h2>
+            <div id="results-summary" class="results-summary"></div>
+          </div>
+          <div id="results-content" class="results-content"></div>
+          <button id="finish-quiz" class="finish-button">Finish</button>
+        </div>
+      </div>
+    </section>
+
+    <script src="scripts/quiz.js"></script>
+  </body>
+</html>
+
