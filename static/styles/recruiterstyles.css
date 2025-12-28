@@ -260,6 +260,18 @@ p {
     box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3);
 }
 
+#radar-chart-container {
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: 15px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+#ability-radar-chart {
+    max-height: 400px;
+    max-width: 100%;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .recruiter-container {
@@ -282,5 +294,9 @@ p {
     
     .skills-grid {
         grid-template-columns: 1fr;
+    }
+    
+    #ability-radar-chart {
+        max-height: 300px;
     }
 }

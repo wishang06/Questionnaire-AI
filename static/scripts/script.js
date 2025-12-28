@@ -235,13 +235,13 @@ class BondsAI {
         
         profileHTML = `
             <div class="profile-section">
-                <strong>Candidate:</strong> ${profileData.name}
+                <strong>Name:</strong> ${profileData.name}
             </div>
             <div class="profile-section">
-                <strong>Your assessment results have been recorded. Thank you for your time.</strong><br>
+                <strong>Your dance assessment has been completed! Thank you for participating.</strong><br>
             </div>
             <div class="profile-section">
-                <strong>Interview Duration:</strong> ${profileData.conversation_duration}
+                <strong>Questionnaire Duration:</strong> ${profileData.conversation_duration}
             </div>
         `;
     

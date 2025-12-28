@@ -1,4 +1,4 @@
-from bondsai.job_screening import JobScreeningAssistant
+from bondsai.dance_assessment import DanceAssessmentAssistant
 from server.DeltaTimeRecorder import DeltaTimeRecorder
 
 # This class manages applicant by their ip address to ensure they can only apply once
@@ -8,7 +8,7 @@ from server.DeltaTimeRecorder import DeltaTimeRecorder
 class ApplicantManager:
     def __init__(self):
         self.applicant_state = {}
-        self.applicant_job_assistant = {}
+        self.applicant_dance_assistant = {}
         self.applicant_timer = {}
     
     # Return the status of the applicant based on their IP address
@@ -22,33 +22,37 @@ class ApplicantManager:
         
         self.applicant_state[ip_address] = status
 
-    # Start a conversation with the applicant by creating a JobScreeningAssistant instance
+    # Start a conversation with the applicant by creating a DanceAssessmentAssistant instance
     def start_conversation(self, ip_address):
         if self.get_applicant_status(ip_address) != 'not applied':
             raise ValueError(f"Applicant {ip_address} has already applied or is currently applying.")
         
         self.set_applicant_status(ip_address, 'applying')
-        self.applicant_job_assistant[ip_address] = JobScreeningAssistant()
+        self.applicant_dance_assistant[ip_address] = DanceAssessmentAssistant()
         self.applicant_timer[ip_address] = DeltaTimeRecorder()
 
-    # End the conversation for the applicant by removing their JobScreeningAssistant instance
+    # End the conversation for the applicant by removing their DanceAssessmentAssistant instance
     def end_conversation(self, ip_address):
         if self.get_applicant_status(ip_address) != 'applying':
             print(f"Applicant {ip_address} is not in conversation.")
             return
         
         self.set_applicant_status(ip_address, 'applied')
-        del self.applicant_job_assistant[ip_address]
+        del self.applicant_dance_assistant[ip_address]
         del self.applicant_timer[ip_address]
 
-    # Get the JobScreeningAssistant instance for the applicant
-    def get_job_assistant(self, ip_address):
+    # Get the DanceAssessmentAssistant instance for the applicant
+    def get_dance_assistant(self, ip_address):
         if self.get_applicant_status(ip_address) != 'applying':
             raise ValueError(f"Applicant {ip_address} is not currently applying.") 
         
-        job_assistant = self.applicant_job_assistant[ip_address]
-        job_assistant.candidate.conversation_duration = self.get_conversation_duration(ip_address)
-        return job_assistant
+        dance_assistant = self.applicant_dance_assistant[ip_address]
+        dance_assistant.candidate.conversation_duration = self.get_conversation_duration(ip_address)
+        return dance_assistant
+    
+    # Alias for backward compatibility (if needed)
+    def get_job_assistant(self, ip_address):
+        return self.get_dance_assistant(ip_address)
     
     # Get the conversation duration for the applicant in datetime format, 0 for unfinished conversations and -1 for finished conversations
     def get_conversation_duration(self, ip_address):

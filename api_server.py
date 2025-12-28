@@ -33,7 +33,7 @@ def applicant():
 @app.route('/applicant/chat', methods=['POST'])
 def applicant_chat():
     try:
-        applicant_job_assistant = applicant_manager.get_job_assistant(request.remote_addr)
+        applicant_dance_assistant = applicant_manager.get_dance_assistant(request.remote_addr)
         data = request.get_json()
         user_message = data.get('message', '').strip()
         
@@ -45,10 +45,10 @@ def applicant_chat():
         
         try:
             # Get AI response
-            ai_response = loop.run_until_complete(applicant_job_assistant.chat(user_message))
+            ai_response = loop.run_until_complete(applicant_dance_assistant.chat(user_message))
             
             # Check if conversation is complete (ready for assessment)
-            is_complete = applicant_job_assistant.ready_for_assessment
+            is_complete = applicant_dance_assistant.ready_for_assessment
             
             # If complete, generate assessment summary
             profile_data = None
@@ -56,17 +56,17 @@ def applicant_chat():
                 applicant_manager.stop_conversation_timer(request.remote_addr)
                 conversation_duration = applicant_manager.get_conversation_duration(request.remote_addr)
                 profile_data = {
-                    "name": applicant_job_assistant.candidate.name or "Candidate",
-                    "conversation_count": applicant_job_assistant.candidate.conversation_count,
+                    "name": applicant_dance_assistant.candidate.name or "Candidate",
+                    "conversation_count": applicant_dance_assistant.candidate.conversation_count,
                     "conversation_duration": conversation_duration,
-                    "assessment_summary": "Assessment completed based on interview"
+                    "assessment_summary": "Dance assessment completed"
                 }
             
             response = {
                 "message": ai_response,
                 "isComplete": is_complete,
                 "profile": profile_data,
-                "conversation_count": applicant_job_assistant.candidate.conversation_count
+                "conversation_count": applicant_dance_assistant.candidate.conversation_count
             }
             
             return jsonify(response)
@@ -75,7 +75,7 @@ def applicant_chat():
             loop.close()
 
     except Exception as e:
-        print(f"Error in job chat: {str(e)}")
+        print(f"Error in dance assessment chat: {str(e)}")
         return jsonify({"error": f"Internal server error: {str(e)}"}), 500
 
 @app.route('/applicant/end', methods=['POST'])
@@ -118,8 +118,9 @@ def get_applicants():
         if not os.path.exists(assessments_dir):
             return jsonify({"applicants": []})
         
-        # Get all assessment files
+        # Get all assessment files (both old job assessments and new dance assessments)
         assessment_files = glob.glob(os.path.join(assessments_dir, "*_assessment_*.txt"))
+        assessment_files.extend(glob.glob(os.path.join(assessments_dir, "*_dance_assessment_*.txt")))
         
         for filepath in assessment_files:
             candidate_data = parse_assessment_file(filepath)
@@ -140,7 +141,7 @@ def page_not_found(e):
     return app.send_static_file('404.html'), 404
 
 if __name__ == '__main__':
-    print("Starting BondsAI API Server...")
+    print("Starting Dance Assessment API Server...")
     print("Make sure you have set up your OpenAI API key in the .env file")
     print("Server will be available at http://localhost:8000")
     app.run(debug=True, host='0.0.0.0', port=8000)

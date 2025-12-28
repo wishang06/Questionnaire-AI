@@ -39,45 +39,91 @@ def parse_assessment_file(filepath):
         if final_score_match:
             final_score = int(final_score_match.group(1))
         
-        # Initialize default scores
-        candidate_data = {
-            "name": candidate_name,
-            "interview_date": interview_date,
-            "conversation_count": conversation_count,
-            "conversation_duration": conversation_duration,
-            "final_score": final_score,
-            "technical_skills": {
-                "quantitative_reasoning": 0,
-                "programming": 0,
-                "market_knowledge": 0,
-                "data_analysis": 0
-            },
-            "behavioral_traits": {
-                "problem_solving": 0,
-                "teamwork": 0,
-                "initiative": 0,
-                "resilience": 0,
-                "adaptability": 0
-            },
-            "cultural_fit": {
-                "collaborative_thinking": 0,
-                "continuous_learning": 0,
-                "challenge_seeking": 0,
-                "entrepreneurial_spirit": 0
-            },
-            "soft_skills": {
-                "communication": 0,
-                "decision_making": 0,
-                "time_management": 0,
-                "leadership": 0
-            },
-            "insights": {
-                "strengths": [],
-                "weaknesses": [],
-                "recommendations": []
-            },
-            "ai_assessment": ""
-        }
+        # Check if this is a dance assessment or job assessment
+        is_dance_assessment = "dance_assessment" in filename.lower()
+        
+        # Initialize default scores based on assessment type
+        if is_dance_assessment:
+            candidate_data = {
+                "name": candidate_name,
+                "interview_date": interview_date,
+                "conversation_count": conversation_count,
+                "conversation_duration": conversation_duration,
+                "final_score": final_score,
+                "technical_skills": {
+                    "rhythm": 0,
+                    "coordination": 0,
+                    "flexibility": 0,
+                    "musicality": 0,
+                    "technique": 0
+                },
+                "knowledge": {
+                    "dance_history": 0,
+                    "style_knowledge": 0,
+                    "terminology": 0,
+                    "choreography_understanding": 0
+                },
+                "creativity": {
+                    "improvisation": 0,
+                    "artistic_expression": 0,
+                    "originality": 0,
+                    "performance_quality": 0
+                },
+                "preferences": {
+                    "style_preference": 0,
+                    "learning_approach": 0,
+                    "practice_commitment": 0,
+                    "performance_interest": 0
+                },
+                "insights": {
+                    "strengths": [],
+                    "areas_for_improvement": [],
+                    "recommendations": [],
+                    "next_steps": [],
+                    "personalized_guidance": []
+                },
+                "ai_assessment": ""
+            }
+        else:
+            # Legacy job assessment format
+            candidate_data = {
+                "name": candidate_name,
+                "interview_date": interview_date,
+                "conversation_count": conversation_count,
+                "conversation_duration": conversation_duration,
+                "final_score": final_score,
+                "technical_skills": {
+                    "quantitative_reasoning": 0,
+                    "programming": 0,
+                    "market_knowledge": 0,
+                    "data_analysis": 0
+                },
+                "behavioral_traits": {
+                    "problem_solving": 0,
+                    "teamwork": 0,
+                    "initiative": 0,
+                    "resilience": 0,
+                    "adaptability": 0
+                },
+                "cultural_fit": {
+                    "collaborative_thinking": 0,
+                    "continuous_learning": 0,
+                    "challenge_seeking": 0,
+                    "entrepreneurial_spirit": 0
+                },
+                "soft_skills": {
+                    "communication": 0,
+                    "decision_making": 0,
+                    "time_management": 0,
+                    "leadership": 0
+                },
+                "insights": {
+                    "strengths": [],
+                    "weaknesses": [],
+                    "recommendations": []
+                },
+                "ai_assessment": ""
+            }
         
         # Try to extract AI assessment content (everything between the header and transcript)
         assessment_start = content.find("Generated on:")
@@ -96,58 +142,130 @@ def parse_assessment_file(filepath):
             if final_score_match:
                 candidate_data["final_score"] = int(final_score_match.group(1))
             
-            # Extract technical skills scores
-            tech_section = re.search(r'Technical Skills.*?(?=Behavioral|Cultural|Soft|Overall|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
-            if tech_section:
-                tech_text = tech_section.group(0)
-                candidate_data["technical_skills"]["quantitative_reasoning"] = extract_score(tech_text, "quantitative")
-                candidate_data["technical_skills"]["programming"] = extract_score(tech_text, "programming")
-                candidate_data["technical_skills"]["market_knowledge"] = extract_score(tech_text, "market")
-                candidate_data["technical_skills"]["data_analysis"] = extract_score(tech_text, "data")
-            
-            # Extract behavioral traits scores
-            behavioral_section = re.search(r'Behavioral.*?(?=Technical|Cultural|Soft|Overall|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
-            if behavioral_section:
-                behavioral_text = behavioral_section.group(0)
-                candidate_data["behavioral_traits"]["problem_solving"] = extract_score(behavioral_text, "problem")
-                candidate_data["behavioral_traits"]["teamwork"] = extract_score(behavioral_text, "teamwork")
-                candidate_data["behavioral_traits"]["initiative"] = extract_score(behavioral_text, "initiative")
-                candidate_data["behavioral_traits"]["resilience"] = extract_score(behavioral_text, "resilience")
-                candidate_data["behavioral_traits"]["adaptability"] = extract_score(behavioral_text, "adaptability")
-            
-            # Extract cultural fit scores
-            cultural_section = re.search(r'Cultural.*?(?=Technical|Behavioral|Soft|Overall|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
-            if cultural_section:
-                cultural_text = cultural_section.group(0)
-                candidate_data["cultural_fit"]["collaborative_thinking"] = extract_score(cultural_text, "collaborative")
-                candidate_data["cultural_fit"]["continuous_learning"] = extract_score(cultural_text, "learning")
-                candidate_data["cultural_fit"]["challenge_seeking"] = extract_score(cultural_text, "challenge")
-                candidate_data["cultural_fit"]["entrepreneurial_spirit"] = extract_score(cultural_text, "entrepreneurial")
-            
-            # Extract soft skills scores
-            soft_section = re.search(r'Soft Skills.*?(?=Technical|Behavioral|Cultural|Overall|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
-            if soft_section:
-                soft_text = soft_section.group(0)
-                candidate_data["soft_skills"]["communication"] = extract_score(soft_text, "communication")
-                candidate_data["soft_skills"]["decision_making"] = extract_score(soft_text, "decision")
-                candidate_data["soft_skills"]["time_management"] = extract_score(soft_text, "time")
-                candidate_data["soft_skills"]["leadership"] = extract_score(soft_text, "leadership")
-            
-            # Extract insights
-            strengths_match = re.search(r'(?:Key )?Strengths?[:\s]+(.*?)(?=Areas|Weaknesses|Recommendations|Cultural|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
-            if strengths_match:
-                strengths_text = strengths_match.group(1)
-                candidate_data["insights"]["strengths"] = extract_list_items(strengths_text)
-            
-            weaknesses_match = re.search(r'(?:Areas for Improvement|Weaknesses?)[:\s]+(.*?)(?=Strengths|Recommendations|Cultural|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
-            if weaknesses_match:
-                weaknesses_text = weaknesses_match.group(1)
-                candidate_data["insights"]["weaknesses"] = extract_list_items(weaknesses_text)
-            
-            recommendations_match = re.search(r'Recommendations?[:\s]+(.*?)(?=Strengths|Weaknesses|Cultural|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
-            if recommendations_match:
-                recommendations_text = recommendations_match.group(1)
-                candidate_data["insights"]["recommendations"] = extract_list_items(recommendations_text)
+            if is_dance_assessment:
+                # Extract dance assessment scores
+                tech_section = re.search(r'Technical Skills.*?(?=Knowledge|Creativity|Preferences|Overall|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
+                if tech_section:
+                    tech_text = tech_section.group(0)
+                    candidate_data["technical_skills"]["rhythm"] = extract_score(tech_text, "rhythm")
+                    candidate_data["technical_skills"]["coordination"] = extract_score(tech_text, "coordination")
+                    candidate_data["technical_skills"]["flexibility"] = extract_score(tech_text, "flexibility")
+                    candidate_data["technical_skills"]["musicality"] = extract_score(tech_text, "musicality")
+                    candidate_data["technical_skills"]["technique"] = extract_score(tech_text, "technique")
+                
+                # Extract knowledge scores
+                knowledge_section = re.search(r'Knowledge.*?(?=Technical|Creativity|Preferences|Overall|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
+                if knowledge_section:
+                    knowledge_text = knowledge_section.group(0)
+                    candidate_data["knowledge"]["dance_history"] = extract_score(knowledge_text, "history")
+                    candidate_data["knowledge"]["style_knowledge"] = extract_score(knowledge_text, "style")
+                    candidate_data["knowledge"]["terminology"] = extract_score(knowledge_text, "terminology")
+                    candidate_data["knowledge"]["choreography_understanding"] = extract_score(knowledge_text, "choreography")
+                
+                # Extract creativity scores
+                creativity_section = re.search(r'Creativity.*?(?=Technical|Knowledge|Preferences|Overall|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
+                if creativity_section:
+                    creativity_text = creativity_section.group(0)
+                    candidate_data["creativity"]["improvisation"] = extract_score(creativity_text, "improvisation")
+                    # Try both "artistic expression" and "artistic_expression"
+                    artistic_score = extract_score(creativity_text, "artistic")
+                    if artistic_score == 0:
+                        artistic_score = extract_score(creativity_text, "expression")
+                    candidate_data["creativity"]["artistic_expression"] = artistic_score
+                    candidate_data["creativity"]["originality"] = extract_score(creativity_text, "originality")
+                    candidate_data["creativity"]["performance_quality"] = extract_score(creativity_text, "performance")
+                
+                # Extract preferences scores
+                preferences_section = re.search(r'Preferences.*?(?=Technical|Knowledge|Creativity|Overall|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
+                if preferences_section:
+                    preferences_text = preferences_section.group(0)
+                    candidate_data["preferences"]["style_preference"] = extract_score(preferences_text, "style")
+                    candidate_data["preferences"]["learning_approach"] = extract_score(preferences_text, "learning")
+                    # Try both "practice" and "commitment"
+                    practice_score = extract_score(preferences_text, "practice")
+                    if practice_score == 0:
+                        practice_score = extract_score(preferences_text, "commitment")
+                    candidate_data["preferences"]["practice_commitment"] = practice_score
+                    # Try both "performance" and "interest"
+                    perf_score = extract_score(preferences_text, "performance")
+                    if perf_score == 0:
+                        perf_score = extract_score(preferences_text, "interest")
+                    candidate_data["preferences"]["performance_interest"] = perf_score
+                
+                # Extract insights
+                strengths_match = re.search(r'(?:Key )?Strengths?[:\s]+(.*?)(?=Areas|Improvement|Recommendations|Next|Personalized|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
+                if strengths_match:
+                    strengths_text = strengths_match.group(1)
+                    candidate_data["insights"]["strengths"] = extract_list_items(strengths_text)
+                
+                weaknesses_match = re.search(r'(?:Areas for Improvement|Areas for improvement)[:\s]+(.*?)(?=Strengths|Recommendations|Next|Personalized|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
+                if weaknesses_match:
+                    weaknesses_text = weaknesses_match.group(1)
+                    candidate_data["insights"]["areas_for_improvement"] = extract_list_items(weaknesses_text)
+                
+                recommendations_match = re.search(r'Personalized Recommendations?[:\s]+(.*?)(?=Strengths|Areas|Next|Personalized|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
+                if recommendations_match:
+                    recommendations_text = recommendations_match.group(1)
+                    candidate_data["insights"]["recommendations"] = extract_list_items(recommendations_text)
+                
+                next_steps_match = re.search(r'Next Steps?[:\s]+(.*?)(?=Strengths|Areas|Recommendations|Personalized|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
+                if next_steps_match:
+                    next_steps_text = next_steps_match.group(1)
+                    candidate_data["insights"]["next_steps"] = extract_list_items(next_steps_text)
+                
+                guidance_match = re.search(r'Personalized Guidance[:\s]+(.*?)(?=Strengths|Areas|Recommendations|Next|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
+                if guidance_match:
+                    guidance_text = guidance_match.group(1)
+                    candidate_data["insights"]["personalized_guidance"] = [guidance_text.strip()[:500]]  # Limit length
+            else:
+                # Legacy job assessment extraction
+                tech_section = re.search(r'Technical Skills.*?(?=Behavioral|Cultural|Soft|Overall|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
+                if tech_section:
+                    tech_text = tech_section.group(0)
+                    candidate_data["technical_skills"]["quantitative_reasoning"] = extract_score(tech_text, "quantitative")
+                    candidate_data["technical_skills"]["programming"] = extract_score(tech_text, "programming")
+                    candidate_data["technical_skills"]["market_knowledge"] = extract_score(tech_text, "market")
+                    candidate_data["technical_skills"]["data_analysis"] = extract_score(tech_text, "data")
+                
+                behavioral_section = re.search(r'Behavioral.*?(?=Technical|Cultural|Soft|Overall|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
+                if behavioral_section:
+                    behavioral_text = behavioral_section.group(0)
+                    candidate_data["behavioral_traits"]["problem_solving"] = extract_score(behavioral_text, "problem")
+                    candidate_data["behavioral_traits"]["teamwork"] = extract_score(behavioral_text, "teamwork")
+                    candidate_data["behavioral_traits"]["initiative"] = extract_score(behavioral_text, "initiative")
+                    candidate_data["behavioral_traits"]["resilience"] = extract_score(behavioral_text, "resilience")
+                    candidate_data["behavioral_traits"]["adaptability"] = extract_score(behavioral_text, "adaptability")
+                
+                cultural_section = re.search(r'Cultural.*?(?=Technical|Behavioral|Soft|Overall|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
+                if cultural_section:
+                    cultural_text = cultural_section.group(0)
+                    candidate_data["cultural_fit"]["collaborative_thinking"] = extract_score(cultural_text, "collaborative")
+                    candidate_data["cultural_fit"]["continuous_learning"] = extract_score(cultural_text, "learning")
+                    candidate_data["cultural_fit"]["challenge_seeking"] = extract_score(cultural_text, "challenge")
+                    candidate_data["cultural_fit"]["entrepreneurial_spirit"] = extract_score(cultural_text, "entrepreneurial")
+                
+                soft_section = re.search(r'Soft Skills.*?(?=Technical|Behavioral|Cultural|Overall|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
+                if soft_section:
+                    soft_text = soft_section.group(0)
+                    candidate_data["soft_skills"]["communication"] = extract_score(soft_text, "communication")
+                    candidate_data["soft_skills"]["decision_making"] = extract_score(soft_text, "decision")
+                    candidate_data["soft_skills"]["time_management"] = extract_score(soft_text, "time")
+                    candidate_data["soft_skills"]["leadership"] = extract_score(soft_text, "leadership")
+                
+                strengths_match = re.search(r'(?:Key )?Strengths?[:\s]+(.*?)(?=Areas|Weaknesses|Recommendations|Cultural|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
+                if strengths_match:
+                    strengths_text = strengths_match.group(1)
+                    candidate_data["insights"]["strengths"] = extract_list_items(strengths_text)
+                
+                weaknesses_match = re.search(r'(?:Areas for Improvement|Weaknesses?)[:\s]+(.*?)(?=Strengths|Recommendations|Cultural|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
+                if weaknesses_match:
+                    weaknesses_text = weaknesses_match.group(1)
+                    candidate_data["insights"]["weaknesses"] = extract_list_items(weaknesses_text)
+                
+                recommendations_match = re.search(r'Recommendations?[:\s]+(.*?)(?=Strengths|Weaknesses|Cultural|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
+                if recommendations_match:
+                    recommendations_text = recommendations_match.group(1)
+                    candidate_data["insights"]["recommendations"] = extract_list_items(recommendations_text)
         
         return candidate_data
         

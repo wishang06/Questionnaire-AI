@@ -3,16 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BondsAI - Recruiter Dashboard</title>
+    <title>Dance Assessment - Admin Dashboard</title>
     <link rel="shortcut icon" type="image/x-icon" href="image/favicon.ico" />
     <link rel="stylesheet" href="/styles/styles.css" />
     <link rel="stylesheet" href="/styles/recruiterstyles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
   <body>
     <div class="recruiter-container">
       <div class="header">
-        <div class="h1-box"><h1>Recruiter Dashboard</h1></div>
-        <p>Review candidate assessments and characteristics</p>
+        <div class="h1-box"><h1>Dance Assessment Dashboard</h1></div>
+        <p>Review dance assessments and diagnostic reports</p>
       </div>
 
       <div id="loading" class="loading-spinner">
@@ -31,10 +32,10 @@
       </div>
 
       <div id="no-applicants" class="no-applicants" style="display: none">
-        <h3>No Applicants Yet</h3>
+        <h3>No Assessments Yet</h3>
         <p>
-          No job interviews have been completed yet. Applicants will appear here
-          after they complete their AI interviews.
+          No dance assessments have been completed yet. Candidates will appear here
+          after they complete their dance questionnaire.
         </p>
         <button class="refresh-button" onclick="loadApplicants()">
           Refresh
@@ -48,9 +49,13 @@
         <button class="close-button" onclick="closeModal()">&times;</button>
         <div class="modal-header">
           <h2 id="modal-candidate-name">Candidate Name</h2>
-          <p id="modal-candidate-info">Interview completed</p>
+          <p id="modal-candidate-info">Assessment completed</p>
         </div>
-        <div id="modal-characteristics-content"></div>
+        <div id="modal-characteristics-content">
+          <div id="radar-chart-container" style="margin: 20px 0;">
+            <canvas id="ability-radar-chart"></canvas>
+          </div>
+        </div>
       </div>
     </div>
     <script src="scripts/recruiterscript.js"></script>
