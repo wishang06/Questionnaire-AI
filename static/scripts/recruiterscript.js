@@ -94,14 +94,19 @@ function showCharacteristics(index) {
 
     // Create radar chart for dance assessments
     if (isDanceAssessment(applicant)) {
+        // Wait for DOM to be ready and Chart.js to be loaded
         setTimeout(() => {
-            createRadarChart(applicant);
-        }, 100);
+            if (typeof Chart !== 'undefined') {
+                createRadarChart(applicant);
+            } else {
+                console.error('Chart.js is not loaded');
+            }
+        }, 200);
     }
 }
 
 function buildDanceAssessmentContent(applicant) {
-    let content = '<div id="radar-chart-container" style="margin: 20px 0; text-align: center;"><canvas id="ability-radar-chart"></canvas></div>';
+    let content = '<div id="radar-chart-container" style="margin: 20px 0; text-align: center; height: 400px; position: relative;"><canvas id="ability-radar-chart" style="max-height: 400px;"></canvas></div>';
 
     // Technical Skills
     if (applicant.technical_skills) {
@@ -454,14 +459,20 @@ function buildJobAssessmentContent(applicant) {
 
 function createRadarChart(applicant) {
     const ctx = document.getElementById('ability-radar-chart');
-    if (!ctx) return;
+    if (!ctx) {
+        console.error('Radar chart canvas not found');
+        return;
+    }
 
     // Collect all ability scores for the radar chart
     const labels = [];
     const data = [];
 
     // Technical Skills
-    if (applicant.technical_skills) {
+    if (applicant.technical_skills && 
+        (applicant.technical_skills.rhythm || applicant.technical_skills.coordination || 
+         applicant.technical_skills.flexibility || applicant.technical_skills.musicality || 
+         applicant.technical_skills.technique)) {
         labels.push('Rhythm', 'Coordination', 'Flexibility', 'Musicality', 'Technique');
         data.push(
             applicant.technical_skills.rhythm || 0,
@@ -473,39 +484,65 @@ function createRadarChart(applicant) {
     }
 
     // Knowledge (average)
-    if (applicant.knowledge) {
-        const knowledgeAvg = (
-            (applicant.knowledge.dance_history || 0) +
-            (applicant.knowledge.style_knowledge || 0) +
-            (applicant.knowledge.terminology || 0) +
-            (applicant.knowledge.choreography_understanding || 0)
-        ) / 4;
-        labels.push('Knowledge');
-        data.push(Math.round(knowledgeAvg));
+    if (applicant.knowledge && 
+        (applicant.knowledge.dance_history || applicant.knowledge.style_knowledge || 
+         applicant.knowledge.terminology || applicant.knowledge.choreography_understanding)) {
+        const knowledgeScores = [
+            applicant.knowledge.dance_history || 0,
+            applicant.knowledge.style_knowledge || 0,
+            applicant.knowledge.terminology || 0,
+            applicant.knowledge.choreography_understanding || 0
+        ].filter(s => s > 0);
+        if (knowledgeScores.length > 0) {
+            const knowledgeAvg = knowledgeScores.reduce((a, b) => a + b, 0) / knowledgeScores.length;
+            labels.push('Knowledge');
+            data.push(Math.round(knowledgeAvg));
+        }
     }
 
     // Creativity (average)
-    if (applicant.creativity) {
-        const creativityAvg = (
-            (applicant.creativity.improvisation || 0) +
-            (applicant.creativity.artistic_expression || 0) +
-            (applicant.creativity.originality || 0) +
-            (applicant.creativity.performance_quality || 0)
-        ) / 4;
-        labels.push('Creativity');
-        data.push(Math.round(creativityAvg));
+    if (applicant.creativity && 
+        (applicant.creativity.improvisation || applicant.creativity.artistic_expression || 
+         applicant.creativity.originality || applicant.creativity.performance_quality)) {
+        const creativityScores = [
+            applicant.creativity.improvisation || 0,
+            applicant.creativity.artistic_expression || 0,
+            applicant.creativity.originality || 0,
+            applicant.creativity.performance_quality || 0
+        ].filter(s => s > 0);
+        if (creativityScores.length > 0) {
+            const creativityAvg = creativityScores.reduce((a, b) => a + b, 0) / creativityScores.length;
+            labels.push('Creativity');
+            data.push(Math.round(creativityAvg));
+        }
     }
 
     // Preferences (average)
-    if (applicant.preferences) {
-        const preferencesAvg = (
-            (applicant.preferences.style_preference || 0) +
-            (applicant.preferences.learning_approach || 0) +
-            (applicant.preferences.practice_commitment || 0) +
-            (applicant.preferences.performance_interest || 0)
-        ) / 4;
-        labels.push('Engagement');
-        data.push(Math.round(preferencesAvg));
+    if (applicant.preferences && 
+        (applicant.preferences.style_preference || applicant.preferences.learning_approach || 
+         applicant.preferences.practice_commitment || applicant.preferences.performance_interest)) {
+        const preferencesScores = [
+            applicant.preferences.style_preference || 0,
+            applicant.preferences.learning_approach || 0,
+            applicant.preferences.practice_commitment || 0,
+            applicant.preferences.performance_interest || 0
+        ].filter(s => s > 0);
+        if (preferencesScores.length > 0) {
+            const preferencesAvg = preferencesScores.reduce((a, b) => a + b, 0) / preferencesScores.length;
+            labels.push('Engagement');
+            data.push(Math.round(preferencesAvg));
+        }
+    }
+
+    // Don't create chart if no data
+    if (labels.length === 0 || data.length === 0) {
+        console.warn('No data available for radar chart');
+        return;
+    }
+
+    // Destroy existing chart if it exists
+    if (radarChart) {
+        radarChart.destroy();
     }
 
     radarChart = new Chart(ctx, {
@@ -526,7 +563,8 @@ function createRadarChart(applicant) {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
+            aspectRatio: 1,
             scales: {
                 r: {
                     beginAtZero: true,

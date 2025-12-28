@@ -127,7 +127,10 @@ def parse_assessment_file(filepath):
         
         # Try to extract AI assessment content (everything between the header and transcript)
         assessment_start = content.find("Generated on:")
+        # Check for both "Full Interview Transcript:" (job assessments) and "Full Questionnaire Transcript:" (dance assessments)
         transcript_start = content.find("Full Interview Transcript:")
+        if transcript_start == -1:
+            transcript_start = content.find("Full Questionnaire Transcript:")
         
         if assessment_start != -1 and transcript_start != -1:
             ai_assessment = content[assessment_start:transcript_start].strip()
@@ -144,7 +147,8 @@ def parse_assessment_file(filepath):
             
             if is_dance_assessment:
                 # Extract dance assessment scores
-                tech_section = re.search(r'Technical Skills.*?(?=Knowledge|Creativity|Preferences|Overall|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
+                # Look for "#### 1. Technical Skills Assessment" or "Technical Skills" section
+                tech_section = re.search(r'(?:####\s*\d+\.\s*)?Technical Skills.*?(?=####\s*\d+\.\s*Knowledge|####\s*\d+\.\s*Creativity|####\s*\d+\.\s*Preferences|####\s*\d+\.\s*Overall|Knowledge Assessment|Creativity Assessment|Preferences Assessment|Overall Assessment|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
                 if tech_section:
                     tech_text = tech_section.group(0)
                     candidate_data["technical_skills"]["rhythm"] = extract_score(tech_text, "rhythm")
@@ -154,7 +158,7 @@ def parse_assessment_file(filepath):
                     candidate_data["technical_skills"]["technique"] = extract_score(tech_text, "technique")
                 
                 # Extract knowledge scores
-                knowledge_section = re.search(r'Knowledge.*?(?=Technical|Creativity|Preferences|Overall|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
+                knowledge_section = re.search(r'(?:####\s*\d+\.\s*)?Knowledge.*?(?=####\s*\d+\.\s*Technical|####\s*\d+\.\s*Creativity|####\s*\d+\.\s*Preferences|####\s*\d+\.\s*Overall|Technical Skills|Creativity Assessment|Preferences Assessment|Overall Assessment|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
                 if knowledge_section:
                     knowledge_text = knowledge_section.group(0)
                     candidate_data["knowledge"]["dance_history"] = extract_score(knowledge_text, "history")
@@ -163,7 +167,7 @@ def parse_assessment_file(filepath):
                     candidate_data["knowledge"]["choreography_understanding"] = extract_score(knowledge_text, "choreography")
                 
                 # Extract creativity scores
-                creativity_section = re.search(r'Creativity.*?(?=Technical|Knowledge|Preferences|Overall|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
+                creativity_section = re.search(r'(?:####\s*\d+\.\s*)?Creativity.*?(?=####\s*\d+\.\s*Technical|####\s*\d+\.\s*Knowledge|####\s*\d+\.\s*Preferences|####\s*\d+\.\s*Overall|Technical Skills|Knowledge Assessment|Preferences Assessment|Overall Assessment|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
                 if creativity_section:
                     creativity_text = creativity_section.group(0)
                     candidate_data["creativity"]["improvisation"] = extract_score(creativity_text, "improvisation")
@@ -176,7 +180,7 @@ def parse_assessment_file(filepath):
                     candidate_data["creativity"]["performance_quality"] = extract_score(creativity_text, "performance")
                 
                 # Extract preferences scores
-                preferences_section = re.search(r'Preferences.*?(?=Technical|Knowledge|Creativity|Overall|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
+                preferences_section = re.search(r'(?:####\s*\d+\.\s*)?Preferences.*?(?=####\s*\d+\.\s*Technical|####\s*\d+\.\s*Knowledge|####\s*\d+\.\s*Creativity|####\s*\d+\.\s*Overall|Technical Skills|Knowledge Assessment|Creativity Assessment|Overall Assessment|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
                 if preferences_section:
                     preferences_text = preferences_section.group(0)
                     candidate_data["preferences"]["style_preference"] = extract_score(preferences_text, "style")
@@ -192,31 +196,53 @@ def parse_assessment_file(filepath):
                         perf_score = extract_score(preferences_text, "interest")
                     candidate_data["preferences"]["performance_interest"] = perf_score
                 
-                # Extract insights
-                strengths_match = re.search(r'(?:Key )?Strengths?[:\s]+(.*?)(?=Areas|Improvement|Recommendations|Next|Personalized|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
-                if strengths_match:
-                    strengths_text = strengths_match.group(1)
-                    candidate_data["insights"]["strengths"] = extract_list_items(strengths_text)
-                
-                weaknesses_match = re.search(r'(?:Areas for Improvement|Areas for improvement)[:\s]+(.*?)(?=Strengths|Recommendations|Next|Personalized|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
-                if weaknesses_match:
-                    weaknesses_text = weaknesses_match.group(1)
-                    candidate_data["insights"]["areas_for_improvement"] = extract_list_items(weaknesses_text)
-                
-                recommendations_match = re.search(r'Personalized Recommendations?[:\s]+(.*?)(?=Strengths|Areas|Next|Personalized|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
-                if recommendations_match:
-                    recommendations_text = recommendations_match.group(1)
-                    candidate_data["insights"]["recommendations"] = extract_list_items(recommendations_text)
-                
-                next_steps_match = re.search(r'Next Steps?[:\s]+(.*?)(?=Strengths|Areas|Recommendations|Personalized|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
-                if next_steps_match:
-                    next_steps_text = next_steps_match.group(1)
-                    candidate_data["insights"]["next_steps"] = extract_list_items(next_steps_text)
-                
-                guidance_match = re.search(r'Personalized Guidance[:\s]+(.*?)(?=Strengths|Areas|Recommendations|Next|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
-                if guidance_match:
-                    guidance_text = guidance_match.group(1)
-                    candidate_data["insights"]["personalized_guidance"] = [guidance_text.strip()[:500]]  # Limit length
+                # Extract insights from Overall Assessment section
+                overall_section = re.search(r'(?:####\s*\d+\.\s*)?Overall Assessment.*?(?=---|Full|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
+                if overall_section:
+                    overall_text = overall_section.group(0)
+                    
+                    # Extract strengths (handle markdown bold: "- **Key Strengths**:")
+                    strengths_match = re.search(r'-\s*\*\*(?:Key )?Strengths?\*\*[:\s]+(.*?)(?=-\s*\*\*Areas|-\s*\*\*Recommendations|-\s*\*\*Next|-\s*\*\*Personalized|$)', overall_text, re.DOTALL | re.IGNORECASE)
+                    if not strengths_match:
+                        # Try without markdown
+                        strengths_match = re.search(r'(?:Key )?Strengths?[:\s]+(.*?)(?=Areas|Improvement|Recommendations|Next|Personalized|$)', overall_text, re.DOTALL | re.IGNORECASE)
+                    if strengths_match:
+                        strengths_text = strengths_match.group(1)
+                        candidate_data["insights"]["strengths"] = extract_list_items(strengths_text)
+                    
+                    # Extract areas for improvement
+                    weaknesses_match = re.search(r'-\s*\*\*Areas for Improvement\*\*[:\s]+(.*?)(?=-\s*\*\*Strengths|-\s*\*\*Recommendations|-\s*\*\*Next|-\s*\*\*Personalized|$)', overall_text, re.DOTALL | re.IGNORECASE)
+                    if not weaknesses_match:
+                        weaknesses_match = re.search(r'Areas for Improvement[:\s]+(.*?)(?=Strengths|Recommendations|Next|Personalized|$)', overall_text, re.DOTALL | re.IGNORECASE)
+                    if weaknesses_match:
+                        weaknesses_text = weaknesses_match.group(1)
+                        candidate_data["insights"]["areas_for_improvement"] = extract_list_items(weaknesses_text)
+                    
+                    # Extract recommendations
+                    recommendations_match = re.search(r'-\s*\*\*Personalized Recommendations?\*\*[:\s]+(.*?)(?=-\s*\*\*Strengths|-\s*\*\*Areas|-\s*\*\*Next|-\s*\*\*Personalized|$)', overall_text, re.DOTALL | re.IGNORECASE)
+                    if not recommendations_match:
+                        recommendations_match = re.search(r'Personalized Recommendations?[:\s]+(.*?)(?=Strengths|Areas|Next|Personalized|$)', overall_text, re.DOTALL | re.IGNORECASE)
+                    if recommendations_match:
+                        recommendations_text = recommendations_match.group(1)
+                        candidate_data["insights"]["recommendations"] = extract_list_items(recommendations_text)
+                    
+                    # Extract next steps
+                    next_steps_match = re.search(r'-\s*\*\*Next Steps?\*\*[:\s]+(.*?)(?=-\s*\*\*Strengths|-\s*\*\*Areas|-\s*\*\*Recommendations|-\s*\*\*Personalized|$)', overall_text, re.DOTALL | re.IGNORECASE)
+                    if not next_steps_match:
+                        next_steps_match = re.search(r'Next Steps?[:\s]+(.*?)(?=Strengths|Areas|Recommendations|Personalized|$)', overall_text, re.DOTALL | re.IGNORECASE)
+                    if next_steps_match:
+                        next_steps_text = next_steps_match.group(1)
+                        candidate_data["insights"]["next_steps"] = extract_list_items(next_steps_text)
+                    
+                    # Extract personalized guidance
+                    guidance_match = re.search(r'-\s*\*\*Personalized Guidance\*\*[:\s]+(.*?)(?=-\s*\*\*Strengths|-\s*\*\*Areas|-\s*\*\*Recommendations|-\s*\*\*Next|---|$)', overall_text, re.DOTALL | re.IGNORECASE)
+                    if not guidance_match:
+                        guidance_match = re.search(r'Personalized Guidance[:\s]+(.*?)(?=Strengths|Areas|Recommendations|Next|---|$)', overall_text, re.DOTALL | re.IGNORECASE)
+                    if guidance_match:
+                        guidance_text = guidance_match.group(1).strip()
+                        # Clean up the guidance text
+                        guidance_text = re.sub(r'\n+', ' ', guidance_text)
+                        candidate_data["insights"]["personalized_guidance"] = [guidance_text[:500]]  # Limit length
             else:
                 # Legacy job assessment extraction
                 tech_section = re.search(r'Technical Skills.*?(?=Behavioral|Cultural|Soft|Overall|$)', ai_assessment, re.DOTALL | re.IGNORECASE)
@@ -275,14 +301,27 @@ def parse_assessment_file(filepath):
 
 # Extract a score for a specific skill from text.
 def extract_score(text, skill_keyword):
-    # Look for patterns like "Programming: 85" or "Programming Skills: 85/100"
-    pattern = rf'{skill_keyword}[^:]*:\s*(\d+)'
+    # Handle markdown bold format: "- **Rhythm**: 85" or "**Rhythm**: 85"
+    # Pattern 1: "- **Skill Name**: 85" or "- **Skill**: 85"
+    pattern = rf'-\s*\*\*{skill_keyword}[^*]*\*\*[:\s]+(\d+)'
     match = re.search(pattern, text, re.IGNORECASE)
     if match:
         return int(match.group(1))
     
-    # Look for patterns like "- Programming: 85"
+    # Pattern 2: "**Skill Name**: 85" or "**Skill**: 85" (without dash)
+    pattern = rf'\*\*{skill_keyword}[^*]*\*\*[:\s]+(\d+)'
+    match = re.search(pattern, text, re.IGNORECASE)
+    if match:
+        return int(match.group(1))
+    
+    # Pattern 3: "- Skill Name: 85" or "- Skill: 85" (without markdown)
     pattern = rf'-\s*{skill_keyword}[^:]*:\s*(\d+)'
+    match = re.search(pattern, text, re.IGNORECASE)
+    if match:
+        return int(match.group(1))
+    
+    # Pattern 4: "Skill Name: 85" or "Skill: 85" (without dash or markdown)
+    pattern = rf'{skill_keyword}[^:]*:\s*(\d+)'
     match = re.search(pattern, text, re.IGNORECASE)
     if match:
         return int(match.group(1))
@@ -300,11 +339,15 @@ def extract_list_items(text):
         if not line:
             continue
             
-        # Remove common list markers
+        # Remove common list markers (including markdown)
         line = re.sub(r'^[-*•]\s*', '', line)
         line = re.sub(r'^\d+\.\s*', '', line)
+        # Remove markdown bold/italic
+        line = re.sub(r'\*\*([^*]+)\*\*', r'\1', line)  # Remove **bold**
+        line = re.sub(r'\*([^*]+)\*', r'\1', line)      # Remove *italic*
+        line = line.strip()
         
         if line and len(line) > 5:  # Only include meaningful items
             items.append(line)
     
-    return items[:5]  # Limit to 5 items
+    return items[:10]  # Limit to 10 items (increased from 5)

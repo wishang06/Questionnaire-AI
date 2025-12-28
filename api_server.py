@@ -119,16 +119,20 @@ def get_applicants():
             return jsonify({"applicants": []})
         
         # Get all assessment files (both old job assessments and new dance assessments)
-        assessment_files = glob.glob(os.path.join(assessments_dir, "*_assessment_*.txt"))
-        assessment_files.extend(glob.glob(os.path.join(assessments_dir, "*_dance_assessment_*.txt")))
+        # Use a set to avoid duplicates if a file matches both patterns
+        assessment_files = set(glob.glob(os.path.join(assessments_dir, "*_assessment_*.txt")))
+        assessment_files.update(glob.glob(os.path.join(assessments_dir, "*_dance_assessment_*.txt")))
         
-        for filepath in assessment_files:
+        for filepath in sorted(assessment_files):  # Sort for consistent ordering
             candidate_data = parse_assessment_file(filepath)
             if candidate_data:
                 applicants.append(candidate_data)
         
-        # Sort by interview date (most recent first)
-        applicants.sort(key=lambda x: x.get('final_score', 0), reverse=True)
+        # Sort by final score (highest first), then by interview date (most recent first)
+        applicants.sort(key=lambda x: (
+            x.get('final_score', 0),
+            x.get('interview_date', '')
+        ), reverse=True)
         
         return jsonify({"applicants": applicants})
         
