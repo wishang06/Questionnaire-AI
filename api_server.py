@@ -29,14 +29,43 @@ def applicant_ai():
         return app.send_static_file('applicant_ai.html')
     
     except ValueError as e:
+        # If already applying, just serve the page
         if applicant_manager.get_applicant_status(request.remote_addr) == 'applying':
             return app.send_static_file('applicant_ai.html')
         
-        return app.send_static_file('applicant_applied.html')
+        # If already applied, allow them to start a new conversation
+        # (reset their state so they can take the assessment again)
+        try:
+            # Clear the old state and start fresh
+            if request.remote_addr in applicant_manager.applicant_state:
+                del applicant_manager.applicant_state[request.remote_addr]
+            if request.remote_addr in applicant_manager.applicant_dance_assistant:
+                del applicant_manager.applicant_dance_assistant[request.remote_addr]
+            if request.remote_addr in applicant_manager.applicant_timer:
+                del applicant_manager.applicant_timer[request.remote_addr]
+            
+            # Now start a new conversation
+            applicant_manager.start_conversation(request.remote_addr)
+            return app.send_static_file('applicant_ai.html')
+        except Exception as reset_error:
+            print(f"Error resetting conversation: {str(reset_error)}")
+            return app.send_static_file('applicant_applied.html')
 
 @app.route('/applicant/chat', methods=['POST'])
 def applicant_chat():
     try:
+        # Check if conversation exists, if not try to start one
+        if applicant_manager.get_applicant_status(request.remote_addr) != 'applying':
+            # Try to start a conversation if not already started
+            try:
+                applicant_manager.start_conversation(request.remote_addr)
+            except ValueError:
+                # If already applying or applied, check status
+                if applicant_manager.get_applicant_status(request.remote_addr) == 'applied':
+                    return jsonify({"error": "You have already completed an assessment. Please refresh the page to start a new one."}), 403
+                # If somehow in wrong state, return error
+                return jsonify({"error": "Please refresh the page and try again."}), 403
+        
         applicant_dance_assistant = applicant_manager.get_dance_assistant(request.remote_addr)
         data = request.get_json()
         user_message = data.get('message', '').strip()
